@@ -2,6 +2,10 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const dns = require('dns');
+
+// Configure DNS fallback servers to resolve MongoDB SRV records
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 dotenv.config();
 
@@ -65,8 +69,20 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 5000;
 
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
+  .then(async () => {
     console.log('✅ Connected to MongoDB Atlas');
+
+    // Migrate existing users: Set isVerified: true for any account that doesn't have it set yet
+    try {
+      const User = require('./models/User');
+      const migrationResult = await User.updateMany({ isVerified: { $exists: false } }, { isVerified: true });
+      if (migrationResult.modifiedCount > 0) {
+        console.log(`ℹ️ Successfully verified ${migrationResult.modifiedCount} existing accounts in migration.`);
+      }
+    } catch (migrationError) {
+      console.error('⚠️ Existing user verification migration failed:', migrationError.message);
+    }
+
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
   })
   .catch((err) => {

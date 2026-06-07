@@ -9,6 +9,10 @@ const userSchema = new mongoose.Schema({
   status:   { type: String, enum: ['Active', 'Suspended'], default: 'Active' },
   suspensionReason: { type: String, default: '' },
   suspensionCount: { type: Number, default: 0 },
+  // Email verification fields
+  isVerified: { type: Boolean, default: false },
+  verificationCode: { type: String, default: null },
+  verificationCodeExpires: { type: Date, default: null },
   // Profile fields
   bio:      { type: String, default: '' },
   location: { type: String, default: '' },

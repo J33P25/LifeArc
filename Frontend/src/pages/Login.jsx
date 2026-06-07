@@ -15,6 +15,11 @@ export default function Login() {
   const [suspensionReason, setSuspensionReason] = useState('')
   const [appealMessage, setAppealMessage] = useState('')
   const [submittingAppeal, setSubmittingAppeal] = useState(false)
+  
+  // OTP states
+  const [otp, setOtp] = useState(['', '', '', '', '', ''])
+  const [resendTimer, setResendTimer] = useState(0)
+
   const navigate = useNavigate()
   const location = useLocation()
   const { login } = useAuth()
@@ -27,11 +32,25 @@ export default function Login() {
     }
   }, [location.pathname])
 
+  // Timer countdown for OTP resend
+  useEffect(() => {
+    let interval = null
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1)
+      }, 1000)
+    } else {
+      clearInterval(interval)
+    }
+    return () => clearInterval(interval)
+  }, [resendTimer])
+
   const toggleMode = () => {
     navigate(mode === 'login' ? '/register' : '/login')
     setEmail('')
     setPassword('')
     setName('')
+    setOtp(['', '', '', '', '', ''])
   }
 
   const handleSubmit = async (e) => {
@@ -49,18 +68,27 @@ export default function Login() {
 
       const { data } = await axios.post(endpoint, payload);
 
-      // Save to context + localStorage
-      login(data);
-
-      toast.success(mode === 'login' ? 'Welcome back!' : 'Account created successfully!');
-
-      // Redirect to dashboard
-      navigate('/dashboard');
+      if (mode === 'signup') {
+        toast.success('Account created! Verification code sent.');
+        setMode('verify');
+      } else {
+        // Save to context + localStorage
+        login(data);
+        toast.success('Welcome back!');
+        navigate('/dashboard');
+      }
     } catch (error) {
       if (error.response?.status === 403 && error.response?.data?.reason) {
         localStorage.setItem('suspensionReason', error.response.data.reason);
         localStorage.setItem('suspensionEmail', email);
         window.location.href = '/suspended';
+        return;
+      }
+      // Handle unverified account login redirect
+      if (error.response?.status === 403 && error.response?.data?.unverified) {
+        setEmail(error.response.data.email || email);
+        setMode('verify');
+        toast.info(error.response.data.message || 'Please verify your email.');
         return;
       }
       const message = error.response?.data?.message || 'Something went wrong. Please try again.';
@@ -69,6 +97,68 @@ export default function Login() {
       setLoading(false)
     }
   }
+
+  const handleVerifySubmit = async (e) => {
+    e.preventDefault();
+    const code = otp.join('');
+    if (code.length !== 6) {
+      toast.error('Please enter the complete 6-digit code');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data } = await axios.post('http://localhost:5000/api/auth/verify-email', {
+        email,
+        code
+      });
+      login(data);
+      toast.success('Email verified successfully! Welcome to Velora.');
+      navigate('/dashboard');
+    } catch (error) {
+      const message = error.response?.data?.message || 'Verification failed. Please try again.';
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (resendTimer > 0) return;
+    setLoading(true);
+    try {
+      await axios.post('http://localhost:5000/api/auth/resend-code', { email });
+      toast.success('Verification code resent successfully!');
+      setResendTimer(30);
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to resend code.';
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpChange = (value, idx) => {
+    // Only allow numbers or empty values
+    if (value && isNaN(value)) return;
+
+    const newOtp = [...otp];
+    newOtp[idx] = value;
+    setOtp(newOtp);
+
+    // Auto focus next input
+    if (value && idx < 5) {
+      const nextInput = document.getElementById(`otp-${idx + 1}`);
+      nextInput?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (e, idx) => {
+    if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
+      const prevInput = document.getElementById(`otp-${idx - 1}`);
+      prevInput?.focus();
+    }
+  };
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden flex items-center justify-center" style={{ backgroundColor: 'hsl(201, 100%, 13%)' }}>
@@ -106,128 +196,198 @@ export default function Login() {
                 </svg>
               </div>
               <h1 className="text-4xl text-white tracking-wide" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                {mode === 'login' ? 'Welcome Back' : 'Join Velora'}
+                {mode === 'login' ? 'Welcome Back' : mode === 'signup' ? 'Join Velora' : 'Verify Email'}
               </h1>
               <p className="text-white/50 text-sm tracking-wide">
                 {mode === 'login'
                   ? 'Enter your credentials to access your account.'
-                  : 'Create an account to start your journey.'}
+                  : mode === 'signup'
+                  ? 'Create an account to start your journey.'
+                  : `We sent a 6-digit verification code to ${email || 'your email'}.`}
               </p>
             </div>
 
-            {/* Login/Signup Form */}
-            <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+            {/* Conditional Form Render */}
+            {mode === 'verify' ? (
+              <form className="flex flex-col gap-6 animate-fade-rise" onSubmit={handleVerifySubmit}>
+                <div className="flex justify-between gap-2">
+                  {otp.map((digit, idx) => (
+                    <input
+                      key={idx}
+                      id={`otp-${idx}`}
+                      type="text"
+                      maxLength="1"
+                      value={digit}
+                      onChange={(e) => handleOtpChange(e.target.value, idx)}
+                      onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                      className="w-12 h-14 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-semibold text-white focus:outline-none focus:border-teal-500/50 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(20,184,166,0.15)] transition-all duration-300"
+                    />
+                  ))}
+                </div>
 
-              {mode === 'signup' && (
-                <div className="relative group animate-fade-rise">
+                <button
+                  type="submit"
+                  disabled={loading || otp.some(d => !d)}
+                  className="liquid-glass relative w-full py-3.5 mt-2 text-sm font-semibold tracking-wider uppercase text-white rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Verifying...
+                    </span>
+                  ) : (
+                    <>
+                      Verify Code
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+
+                <div className="text-center space-y-3 pt-2">
+                  <p className="text-white/40 text-sm">
+                    Didn't receive the code?
+                    <button
+                      type="button"
+                      disabled={resendTimer > 0 || loading}
+                      onClick={handleResendCode}
+                      className="ml-2 text-teal-400 hover:text-teal-300 font-medium transition-colors hover:underline bg-transparent border-none cursor-pointer disabled:opacity-50 disabled:no-underline"
+                    >
+                      {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code'}
+                    </button>
+                  </p>
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('signup');
+                      setOtp(['', '', '', '', '', '']);
+                    }}
+                    className="text-white/30 hover:text-white/60 text-xs tracking-wider uppercase transition-colors bg-transparent border-none cursor-pointer"
+                  >
+                    ← Back to Sign Up
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Login/Signup Form */
+              <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+
+                {mode === 'signup' && (
+                  <div className="relative group animate-fade-rise">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-teal-400 transition-colors duration-300">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-teal-500/50 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(20,184,166,0.15)] transition-all duration-300"
+                      placeholder="Full Name"
+                    />
+                  </div>
+                )}
+
+                <div className="relative group">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-teal-400 transition-colors duration-300">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
+                      <rect width="20" height="16" x="2" y="4" rx="2" />
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
                     </svg>
                   </div>
                   <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-teal-500/50 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(20,184,166,0.15)] transition-all duration-300"
-                    placeholder="Full Name"
+                    placeholder="Email Address"
                   />
                 </div>
-              )}
 
-              <div className="relative group">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-teal-400 transition-colors duration-300">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="20" height="16" x="2" y="4" rx="2" />
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                  </svg>
+                <div className="relative group">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-teal-400 transition-colors duration-300">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </div>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-10 text-white placeholder:text-white/30 focus:outline-none focus:border-teal-500/50 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(20,184,166,0.15)] transition-all duration-300"
+                    placeholder="Password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      {showPassword ? (
+                        <>
+                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                          <path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                          <line x1="2" y1="2" x2="22" y2="22" />
+                        </>
+                      ) : (
+                        <>
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </>
+                      )}
+                    </svg>
+                  </button>
                 </div>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-teal-500/50 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(20,184,166,0.15)] transition-all duration-300"
-                  placeholder="Email Address"
-                />
-              </div>
 
-              <div className="relative group">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-teal-400 transition-colors duration-300">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                </div>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-10 text-white placeholder:text-white/30 focus:outline-none focus:border-teal-500/50 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(20,184,166,0.15)] transition-all duration-300"
-                  placeholder="Password"
-                />
                 <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                  type="submit"
+                  disabled={loading}
+                  className="liquid-glass relative w-full py-3.5 mt-2 text-sm font-semibold tracking-wider uppercase text-white rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    {showPassword ? (
-                      <>
-                        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-                        <path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-                        <line x1="2" y1="2" x2="22" y2="22" />
-                      </>
-                    ) : (
-                      <>
-                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </>
-                    )}
-                  </svg>
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : (
+                    <>
+                      {mode === 'login' ? 'Sign In' : 'Create Account'}
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                      </svg>
+                    </>
+                  )}
                 </button>
-              </div>
-
-
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="liquid-glass relative w-full py-3.5 mt-2 text-sm font-semibold tracking-wider uppercase text-white rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Processing...
-                  </span>
-                ) : (
-                  <>
-                    {mode === 'login' ? 'Sign In' : 'Create Account'}
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 12h14" />
-                      <path d="m12 5 7 7-7 7" />
-                    </svg>
-                  </>
-                )}
-              </button>
-            </form>
-
+              </form>
+            )}
 
             {/* Footer Toggle */}
             {mode !== 'suspended' && (
               <div className="text-center pt-2">
                 <p className="text-white/40 text-sm">
-                  {mode === 'login' ? "Don't have an account?" : "Already have an account?"}
-                  <button
-                    onClick={toggleMode}
-                    className="ml-2 text-teal-400 hover:text-teal-300 font-medium transition-colors hover:underline underline-offset-4 bg-transparent border-none cursor-pointer"
-                  >
-                    {mode === 'login' ? 'Sign Up' : 'Sign In'}
-                  </button>
+                  {mode === 'verify' ? '' : mode === 'login' ? "Don't have an account?" : "Already have an account?"}
+                  {mode !== 'verify' && (
+                    <button
+                      onClick={toggleMode}
+                      className="ml-2 text-teal-400 hover:text-teal-300 font-medium transition-colors hover:underline underline-offset-4 bg-transparent border-none cursor-pointer"
+                    >
+                      {mode === 'login' ? 'Sign Up' : 'Sign In'}
+                    </button>
+                  )}
                 </p>
               </div>
             )}
