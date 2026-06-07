@@ -176,12 +176,12 @@ export default function Events() {
             </h1>
             <p className="text-white/40 text-lg mt-4 font-light max-w-xl leading-relaxed">Capturing moments, milestones, and your journey through time.</p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search archive..." className="w-64 bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-teal-500/50 focus:bg-white/10 transition-all duration-300" />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
+            <div className="relative w-full sm:w-auto">
+              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search memories..." className="w-full sm:w-64 bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-teal-500/50 focus:bg-white/10 transition-all duration-300" />
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
             </div>
-            <button onClick={() => { setIsCreating(true); setEditingId(null); setFormData({ title: '', category: 'Career', description: '', startDate: '', targetDate: '', progress: 0, location: '' }); setPreviews([]); setSelectedFiles([]) }} className="liquid-glass rounded-full px-6 py-3 text-sm text-white cursor-pointer hover:scale-105 transition-transform flex items-center gap-2">
+            <button onClick={() => { setIsCreating(true); setEditingId(null); setFormData({ title: '', category: 'Career', description: '', startDate: '', targetDate: '', progress: 0, location: '' }); setPreviews([]); setSelectedFiles([]) }} className="w-full sm:w-auto liquid-glass rounded-full px-6 py-3 text-sm text-white cursor-pointer hover:scale-105 transition-transform flex items-center justify-center gap-2">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
               Add Memory
             </button>
@@ -321,12 +321,12 @@ export default function Events() {
                   </div>
 
                   {/* Actions Overlay */}
-                  <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <button onClick={() => handleEdit(event)} className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white/80 hover:text-white hover:bg-white/20 transition-all text-xs flex items-center gap-1.5 shadow-lg">
+                  <div className="absolute top-4 right-4 flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300">
+                    <button onClick={() => handleEdit(event)} className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all text-xs flex items-center gap-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
                       Edit
                     </button>
-                    <button onClick={() => handleDelete(event._id)} className="px-3 py-1.5 rounded-full bg-red-500/20 backdrop-blur-md border border-red-500/30 text-red-300 hover:text-red-200 hover:bg-red-500/40 transition-all text-xs flex items-center gap-1.5 shadow-lg">
+                    <button onClick={() => handleDelete(event._id)} className="px-3 py-1.5 rounded-full bg-red-500/20 backdrop-blur-md border border-red-500/30 text-red-100 hover:text-white hover:bg-red-500/40 transition-all text-xs flex items-center gap-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                       Delete
                     </button>

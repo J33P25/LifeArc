@@ -1,4 +1,6 @@
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Menu, X } from 'lucide-react'
 import { useAuth } from './context/AuthContext'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -30,6 +32,7 @@ function AdminRoute({ children }) {
 }
 
 function Navigation() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const location = useLocation()
   const { user, logout } = useAuth()
   
@@ -41,10 +44,10 @@ function Navigation() {
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 px-8 py-4 transition-all duration-500 ${
-      isLanding ? 'bg-transparent' : 'bg-[hsla(201,100%,10%,0.8)] backdrop-blur-xl border-b border-white/5'
+      (isLanding && !isMobileMenuOpen) ? 'bg-transparent' : 'bg-[hsla(201,100%,10%,0.8)] backdrop-blur-xl border-b border-white/5'
     }`}>
       <div className="max-w-7xl mx-auto flex flex-row justify-between items-center">
-        <Link to="/" className="text-2xl tracking-tight text-white group" style={{ fontFamily: "'Instrument Serif', serif", textDecoration: 'none' }}>
+        <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="text-2xl tracking-tight text-white group" style={{ fontFamily: "'Instrument Serif', serif", textDecoration: 'none' }}>
           Velora<span className="text-teal-400 group-hover:animate-pulse">.</span>
         </Link>
         
@@ -86,15 +89,57 @@ function Navigation() {
           )}
           {user ? (
             <button
-              onClick={logout}
+              onClick={() => {
+                logout();
+                setIsMobileMenuOpen(false);
+              }}
               className="liquid-glass rounded-full px-5 py-2 text-sm text-white hover:scale-105 active:scale-95 transition-all"
             >
               Sign Out
             </button>
           ) : (
-            <Link to="/login" className="liquid-glass rounded-full px-5 py-2 text-sm text-white hover:scale-105 active:scale-95 transition-all" style={{ textDecoration: 'none' }}>
+            <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} className="liquid-glass rounded-full px-5 py-2 text-sm text-white hover:scale-105 active:scale-95 transition-all" style={{ textDecoration: 'none' }}>
               Sign In
             </Link>
+          )}
+          
+          <button 
+            className="md:hidden text-white/70 hover:text-white focus:outline-none flex items-center ml-2" 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle mobile menu"
+          >
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Navigation */}
+      <div 
+        className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+          isMobileMenuOpen ? 'max-h-[400px] mt-6 opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <div className="flex flex-col gap-6 px-2 pb-4">
+          {user ? (
+            <>
+              <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className={linkClass('/dashboard', 'text-lg')}>Dashboard</Link>
+              <Link to="/events" onClick={() => setIsMobileMenuOpen(false)} className={linkClass('/events', 'text-lg')}>Archive</Link>
+              <Link to="/journal" onClick={() => setIsMobileMenuOpen(false)} className={linkClass('/journal', 'text-lg')}>Journal</Link>
+              <Link to="/goals" onClick={() => setIsMobileMenuOpen(false)} className={linkClass('/goals', 'text-lg')}>Goals</Link>
+              {user.role !== 'admin' && (
+                <Link to="/feedback" onClick={() => setIsMobileMenuOpen(false)} className={linkClass('/feedback', 'text-lg')}>Feedback</Link>
+              )}
+              {user.role === 'admin' && (
+                <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className={linkClass('/admin', 'text-purple-400 text-lg')}>Admin</Link>
+              )}
+            </>
+          ) : (
+            <>
+              <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className={linkClass('/', 'text-lg')}>Home</Link>
+              <Link to="/about" onClick={() => setIsMobileMenuOpen(false)} className={linkClass('/about', 'text-lg')}>About</Link>
+              <Link to="/journal" onClick={() => setIsMobileMenuOpen(false)} className={linkClass('/journal', 'text-lg')}>Journal</Link>
+              <Link to="/feedback" onClick={() => setIsMobileMenuOpen(false)} className={linkClass('/feedback', 'text-lg')}>Feedback</Link>
+            </>
           )}
         </div>
       </div>

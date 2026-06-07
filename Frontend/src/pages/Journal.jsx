@@ -247,14 +247,14 @@ export default function Journal() {
       <main className="relative z-10 max-w-4xl mx-auto px-6 pt-24 pb-12">
         {/* Header Section */}
         <div className="flex flex-col gap-6 mb-12 animate-fade-rise">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h1 className="text-4xl md:text-5xl text-white tracking-tight" style={{ fontFamily: "'Instrument Serif', serif" }}>
               {activeTab === 'my' ? 'Personal' : 'Community'} <em className="not-italic text-white/40">Feed</em>
             </h1>
             
             <div className="flex items-center gap-3">
               {user && (
-                <button onClick={isWriting ? resetForm : handleNew} className="liquid-glass rounded-full px-5 py-2.5 text-sm text-white flex items-center gap-2">
+                <button onClick={isWriting ? resetForm : handleNew} className="w-full sm:w-auto liquid-glass rounded-full px-5 py-2.5 text-sm text-white cursor-pointer hover:scale-105 transition-transform flex items-center justify-center gap-2">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     {isWriting ? <path d="M18 6 6 18M6 6l12 12"/> : <path d="M12 5v14M5 12h14"/>}
                   </svg>
@@ -266,7 +266,7 @@ export default function Journal() {
 
           {/* Tab Switcher (Only for Users) */}
           {user && (
-            <div className="flex items-center gap-8 border-b border-white/5">
+            <div className="flex items-center gap-4 sm:gap-8 border-b border-white/5 overflow-x-auto pb-2 scrollbar-hide">
               <button 
                 onClick={() => { setActiveTab('my'); setSelectedEntry(null); }} 
                 className={`text-sm pb-4 transition-all relative ${activeTab === 'my' ? 'text-white font-medium' : 'text-white/40 hover:text-white'}`}
@@ -286,12 +286,12 @@ export default function Journal() {
 
           {/* Guest CTA */}
           {!user && (
-            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-6 backdrop-blur-md">
+            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 backdrop-blur-md">
               <div>
                 <h3 className="text-white font-medium">New to Velora?</h3>
                 <p className="text-white/40 text-sm mt-1">Join the community to start sharing your own reflections.</p>
               </div>
-              <Link to="/register" className="liquid-glass rounded-full px-6 py-2.5 text-sm text-white whitespace-nowrap" style={{ textDecoration: 'none' }}>Join Now</Link>
+              <Link to="/register" className="liquid-glass rounded-full px-6 py-2.5 text-sm text-white whitespace-nowrap w-full sm:w-auto text-center" style={{ textDecoration: 'none' }}>Join Now</Link>
             </div>
           )}
         </div>

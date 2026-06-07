@@ -20,7 +20,7 @@ export default function Home() {
       </video>
 
 
-      <section className="relative z-10 flex flex-col items-center justify-center text-center px-6 py-[90px] pt-32 pb-40">
+      <section className="relative z-10 flex flex-col items-center justify-center text-center px-6 py-16 md:py-[90px] pt-24 pb-20 md:pt-32 md:pb-40">
         <div className="animate-fade-rise flex flex-col items-center">
           <span className="text-teal-400 text-xs font-bold uppercase tracking-[0.3em] mb-6 block">Your Personal Growth Sanctuary</span>
           <h1
@@ -39,7 +39,7 @@ export default function Home() {
           {user ? (
             <Link
               to="/dashboard"
-              className="liquid-glass rounded-full px-16 py-5 text-base text-white cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-[0_20px_50px_rgba(20,184,166,0.2)]"
+              className="liquid-glass rounded-full px-10 py-4 md:px-16 md:py-5 text-base text-white cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-[0_20px_50px_rgba(20,184,166,0.2)]"
             >
               Enter Dashboard
             </Link>
@@ -47,7 +47,7 @@ export default function Home() {
             <>
               <Link 
                 to="/register"
-                className="liquid-glass rounded-full px-16 py-5 text-base text-white cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-[0_20px_50px_rgba(20,184,166,0.2)]"
+                className="liquid-glass rounded-full px-10 py-4 md:px-16 md:py-5 text-base text-white cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-[0_20px_50px_rgba(20,184,166,0.2)]"
               >
                 Begin Your Journey
               </Link>

@@ -36,7 +36,7 @@ export default function About() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-blue-900/20 blur-[120px] animate-pulse" />
       </div>
 
-      <main className="relative z-10 max-w-6xl mx-auto px-8 pt-32 pb-24">
+      <main className="relative z-10 max-w-6xl mx-auto px-8 pt-24 pb-16 md:pt-32 md:pb-24">
         
         {/* Section 1: The Manifesto */}
         <section className="text-center mb-32 animate-fade-rise">
@@ -144,10 +144,7 @@ export default function About() {
              <div className="absolute inset-0 bg-teal-500/20 blur-[100px] rounded-full" />
              <div className="relative">
                 <h2 className="text-5xl text-white mb-10" style={{ fontFamily: "'Instrument Serif', serif" }}>Begin Your <em className="text-white/40 not-italic">Own Arc.</em></h2>
-                <Link 
-                  to="/register"
-                  className="liquid-glass inline-block rounded-full px-16 py-6 text-lg text-white cursor-pointer hover:scale-105 transition-all no-underline shadow-2xl"
-                >
+                <Link to="/register" className="liquid-glass rounded-full px-10 py-4 md:px-16 md:py-6 text-base text-white hover:scale-105 active:scale-95 transition-all shadow-[0_20px_50px_rgba(20,184,166,0.2)] inline-block">
                   Join the Sanctuary
                 </Link>
              </div>
